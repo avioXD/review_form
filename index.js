@@ -14,7 +14,10 @@ router.get("/", function (req, res) {
   res.render("index", { data: [] });
   //__dirname : It will resolve to your project folder.
 });
-
+router.get("/review/:dealer_id", (req, res) => {
+  console.log(req.params.dealer_id);
+  res.render("review");
+});
 router.get("/getdealer", (req, res) => {
   const { year } = req.query;
   console.log(year);
