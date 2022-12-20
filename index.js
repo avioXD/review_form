@@ -1,9 +1,22 @@
 const express = require("express");
 var hdb = require("hdb");
-var mysql = require("mysql");
+var bodyParser = require("body-parser");
+const UUID = require("uuid-int");
+const generator = UUID(0000474);
 const router = express.Router();
 const app = express();
 const path = require("path");
+const { NlpManager } = require("node-nlp");
+const fs = require("fs");
+app.use(bodyParser.json());
+const { nlpRun } = require("./nlp-test");
+
+const manager = new NlpManager({ languages: ["en"], forceNER: true });
+// for parsing application/xwww-
+app.use(bodyParser.urlencoded({ extended: true }));
+//form-urlencoded
+// for parsing multipart/form-data
+app.use(express.static("public"));
 // set the view engine to ejs
 app.set("view engine", "ejs");
 const dbconfig = {
@@ -56,7 +69,43 @@ router.get("/review/:dealer_id", (req, res) => {
   });
   res.render("review", { data: selected_dealer });
 });
-router.post("/submit-review");
+router.post("/submit-review/:dealer_id", async (req, res) => {
+  console.log(req.body);
+  let avg =
+    (parseInt(req.body.rating1) +
+      parseInt(req.body.rating2) +
+      parseInt(req.body.rating3)) /
+    3;
+  console.log(avg);
+  const nlpResult = await nlpRun(req.body.commentText);
+  console.log("Ans", nlpResult.answer);
+  // console.log(JSON.stringify(req.params.dealer_id));
+  var client = hdb.createClient(dbconfig);
+  client.on("error", function (err) {
+    console.error("Network connection error", err);
+  });
+  client.connect(function (err) {
+    if (err) {
+      return console.error("Connect error", err);
+    }
+    try {
+      client.exec(
+        `INSERT INTO "HACK2BUILD"."T_Review" (RPMK,KUNNR,RAVG,REM) VALUES ('${generator.uuid()}','${
+          req.params.dealer_id
+        }', ${avg}, '${nlpResult.answer}')`,
+        function (err, result) {
+          client.end();
+          if (err) {
+            return console.log(err), err;
+          }
+          console.log("Results:", result);
+        }
+      );
+    } catch (e) {
+      console.log(e);
+    }
+  });
+});
 /////
 
 router.get("/getdealer", (req, res) => {
