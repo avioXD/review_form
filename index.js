@@ -99,6 +99,7 @@ router.post("/submit-review/:dealer_id", async (req, res) => {
             return console.log(err), err;
           }
           console.log("Results:", result);
+          res.render("thanks");
         }
       );
     } catch (e) {
